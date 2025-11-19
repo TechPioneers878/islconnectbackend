@@ -8,6 +8,9 @@ pyenchant
 gTTS
 googletrans==4.0.0-rc1
 protobuf==3.19.6
+gunicorn
+
+
 
 
 
