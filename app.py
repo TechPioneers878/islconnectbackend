@@ -10,14 +10,13 @@ import traceback
 import random
 import string
 
-from model import load_model_file   # Your model loader
+from model import load_model_file
 
 # ---------------------------
-# Gemini API (NEW)
+# Gemini API
 # ---------------------------
 from google import genai
 from google.genai import types
-import os
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -37,10 +36,9 @@ AUDIO_FOLDER = "generated_audio"
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 current_audio_file = None
 
-
-# -------------------------------------------
-# Helper functions
-# -------------------------------------------
+# -------------------------------------------------------------
+# Helper Functions
+# -------------------------------------------------------------
 
 def calc_landmark_list(image, landmarks):
     h, w = image.shape[:2]
@@ -54,31 +52,23 @@ def pre_process_landmark(landmark_list):
     return arr / max_val if max_val > 0 else arr
 
 
-# ---------- GEMINI SUGGESTION ENGINE ----------
+# -------------------------------------------------------------
+# GEMINI SUGGESTION ENGINE  ✔ FIXED
+# -------------------------------------------------------------
 def gemini_suggest(current_word, sentence):
-    """
-    Returns both:
-    - Word completion (for partial words)
-    - Next word prediction (based on sentence)
-    """
+    prompt = (
+        "You are an AI assisting Indian Sign Language recognition.\n\n"
+        f"Current partial word: '{current_word}'\n"
+        f"Current sentence: '{sentence}'\n\n"
+        "Task:\n"
+        "1. If current_word is incomplete, suggest best completions.\n"
+        "2. If sentence is long, suggest next-word predictions.\n"
+        "3. Always return 4–6 short suggestions.\n"
+        "4. Only return words separated by commas, no explanation.\n\n"
+        "Return format:\n"
+        "word1, word2, word3, word4"
+    )
 
-    prompt = f"""
-You are an AI assisting Indian Sign Language recognition.
-
-User has:
-Current partial word: "{current_word}"
-Current full sentence: "{sentence}"
-
-Task:
-1. If current_word is incomplete → suggest best completions.
-2. If sentence is long → suggest next-word predictions.
-3. Always return 4–6 SHORT suggestions.
-4. Only return the words, no explanation.
-
-Return response as:
-word1, word2, word3, word4
-"""
-"""
     try:
         response = gemini_client.models.generate_content(
             model=MODEL_ID,
@@ -91,9 +81,7 @@ word1, word2, word3, word4
                 if hasattr(p, "text"):
                     text += p.text
 
-        # Convert "word1, word2, word3" into list
         words = [w.strip() for w in text.replace("\n", "").split(",") if w.strip()]
-
         return words[:6]
 
     except Exception as e:
@@ -101,14 +89,13 @@ word1, word2, word3, word4
         return ["No suggestions"]
 
 
-# -------------------------------------------
+# -------------------------------------------------------------
 # API ROUTES
-# -------------------------------------------
+# -------------------------------------------------------------
 
 @app.route("/")
 def index():
     return jsonify({"message": "ISL API running"})
-
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -135,7 +122,6 @@ def predict():
                 "suggestions": []
             })
 
-        # Only first hand
         landmarks = calc_landmark_list(image, results.multi_hand_landmarks[0])
         processed = pre_process_landmark(landmarks)
 
@@ -145,7 +131,7 @@ def predict():
         return jsonify({
             "detected_class": detected_class,
             "word": detected_class.lower(),
-            "suggestions": []   # frontend will call suggestions route
+            "suggestions": []
         })
 
     except Exception as e:
@@ -174,6 +160,7 @@ def speak():
         file_id = f"{int(time.time())}_{random.randint(1000,9999)}.mp3"
         file_path = os.path.join(AUDIO_FOLDER, file_id)
 
+        from gtts import gTTS
         tts = gTTS(text=text, lang=lang)
         tts.save(file_path)
 
@@ -195,10 +182,9 @@ def get_audio():
         return jsonify({"error": "File not found"}), 404
     return send_file(path, mimetype="audio/mpeg")
 
-
-# -------------------------------------------
+# -------------------------------------------------------------
 # MAIN SERVER
-# -------------------------------------------
+# -------------------------------------------------------------
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
