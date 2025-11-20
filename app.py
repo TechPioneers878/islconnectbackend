@@ -15,11 +15,14 @@ from model import load_model_file
 # ---------------------------
 # Gemini API
 # ---------------------------
-from google import genai
-from google.genai import types
+# ---------------------------  
+# Gemini API (NEW)  
+# ---------------------------
+from google.genai import Client, types
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+gemini_client = Client(api_key=GEMINI_API_KEY)
+
 MODEL_ID = "gemini-2.0-flash"
 
 # ---------------------------
@@ -188,3 +191,4 @@ def get_audio():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
